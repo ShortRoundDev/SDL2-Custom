@@ -81,6 +81,7 @@ typedef enum
     SDL_RENDERCMD_DRAW_LINES,
     SDL_RENDERCMD_FILL_RECTS,
     SDL_RENDERCMD_COPY,
+	SDL_RENDERCMD_COPY_MANY,
     SDL_RENDERCMD_COPY_EX
 } SDL_RenderCommandType;
 
@@ -131,6 +132,8 @@ struct SDL_Renderer
                             int count);
     int (*QueueCopy) (SDL_Renderer * renderer, SDL_RenderCommand *cmd, SDL_Texture * texture,
                        const SDL_Rect * srcrect, const SDL_FRect * dstrect);
+	int(*QueueCopyMany) (SDL_Renderer * renderer, SDL_RenderCommand *cmd, SDL_Texture * texture,
+						const SDL_Rect * srcrect, const SDL_FRect * dstrect, int size);
     int (*QueueCopyEx) (SDL_Renderer * renderer, SDL_RenderCommand *cmd, SDL_Texture * texture,
                         const SDL_Rect * srcquad, const SDL_FRect * dstrect,
                         const double angle, const SDL_FPoint *center, const SDL_RendererFlip flip);

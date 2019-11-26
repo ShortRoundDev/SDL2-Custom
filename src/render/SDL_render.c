@@ -18,6 +18,7 @@
      misrepresented as being the original software.
   3. This notice may not be removed or altered from any source distribution.
 */
+#include <stdio.h>
 #include "../SDL_internal.h"
 
 /* The SDL 2D rendering system */
@@ -521,6 +522,23 @@ QueueCmdCopy(SDL_Renderer *renderer, SDL_Texture * texture, const SDL_Rect * src
         }
     }
     return retval;
+}
+
+static int
+QueueCmdCopyMany(SDL_Renderer *renderer, SDL_Texture * texture, const SDL_Rect * srcrect, const SDL_FRect * dstrect, int size) {
+	for (int i = 0; i < size; i++) {
+		SDL_Log("BeforeQueue: src: { x = %d, y = %d, w = %d, h = %d } || Texture { w = %d, h = %d }\n", srcrect[i].x, srcrect[i].y, srcrect[i].w, srcrect[i].h, texture->w, texture->h);
+	}
+	SDL_RenderCommand *cmd = PrepQueueCmdDrawTexture(renderer, texture, SDL_RENDERCMD_COPY);
+	int retval = -1;
+	if (cmd != NULL) {
+		retval = renderer->QueueCopyMany(renderer, cmd, texture, srcrect, dstrect, size);
+		if (retval < 0) {
+			cmd->command = SDL_RENDERCMD_NO_OP;
+		}
+	}
+	return retval;
+
 }
 
 static int
@@ -2940,6 +2958,99 @@ SDL_RenderCopyF(SDL_Renderer * renderer, SDL_Texture * texture,
 
     retval = QueueCmdCopy(renderer, texture, &real_srcrect, &real_dstrect);
     return retval < 0 ? retval : FlushRenderCommandsIfNotBatching(renderer);
+}
+
+int
+SDL_RenderCopyMany(SDL_Renderer * renderer, SDL_Texture * texture,
+	const SDL_Rect * srcrect, const SDL_Rect * dstrect, int size)
+{
+	SDL_LogMessage(1, SDL_LOG_PRIORITY_CRITICAL, "Many");
+
+	SDL_FRect *dstfrect = SDL_malloc(sizeof(SDL_FRect) * size);
+	SDL_FRect *pdstfrect = NULL;
+	for (int i = 0; i < size; i++) {
+		SDL_FRect *dstf = dstfrect + i;
+		SDL_Rect *dst = dstrect + i;
+
+		if (dstrect) {
+			dstf->x = (float)dst->x;
+			dstf->y = (float)dst->y;
+			dstf->w = (float)dst->w;
+			dstf->h = (float)dst->h;
+			pdstfrect = dstfrect;
+		}
+	}
+	int retval = SDL_RenderCopyManyF(renderer, texture, srcrect, pdstfrect, size);
+	SDL_free(dstfrect);
+	return retval;
+}
+
+
+int
+SDL_RenderCopyManyF(SDL_Renderer * renderer, SDL_Texture * texture,
+	const SDL_Rect * srcrect, const SDL_FRect * dstrect, int size)
+{
+	SDL_Rect *real_srcrect = SDL_malloc(sizeof(SDL_Rect) * size);
+	SDL_FRect *real_dstrect = SDL_malloc(sizeof(SDL_Rect) * size);
+	SDL_Rect r;
+	int retval;
+
+	CHECK_RENDERER_MAGIC(renderer, -1);
+	CHECK_TEXTURE_MAGIC(texture, -1);
+
+	if (renderer != texture->renderer) {
+		return SDL_SetError("Texture was not created with this renderer");
+	}
+
+	/* Don't draw while we're hidden */
+	if (renderer->hidden) {
+		return 0;
+	}
+
+	for(int i = 0; i < size; i++) {
+		SDL_Rect * real_src = (real_srcrect + i);
+		SDL_FRect * real_dst = (real_dstrect + i);
+
+		real_src->x = 0;
+		real_src->y = 0;
+		real_src->w = texture->w;
+		real_src->h = texture->h;
+		if (srcrect) {
+			if (!SDL_IntersectRect(srcrect, real_src, real_src)) {
+				return 0;
+			}
+			*real_src = *(srcrect + i);
+
+		}
+
+		SDL_zero(r);
+		SDL_RenderGetViewport(renderer, &r);
+		real_dst->x = 0.0f;
+		real_dst->y = 0.0f;
+		real_dst->w = (float)r.w;
+		real_dst->h = (float)r.h;
+		if (dstrect) {
+			if (!SDL_HasIntersectionF(dstrect, real_dst)) {
+				return 0;
+			}
+			*real_dst = *(dstrect + i);
+		}
+
+		if (texture->native) {
+			texture = texture->native;
+		}
+
+		real_dst->x *= renderer->scale.x;
+		real_dst->y *= renderer->scale.y;
+		real_dst->w *= renderer->scale.x;
+		real_dst->h *= renderer->scale.y;
+
+		texture->last_command_generation = renderer->render_command_generation;
+	}
+	retval = QueueCmdCopyMany(renderer, texture, real_srcrect, real_dstrect, size);
+	SDL_free(real_srcrect);
+	SDL_free(real_dstrect);
+	return retval < 0 ? retval : FlushRenderCommandsIfNotBatching(renderer);
 }
 
 int

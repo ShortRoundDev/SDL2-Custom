@@ -833,6 +833,13 @@ extern DECLSPEC int SDLCALL SDL_RenderCopy(SDL_Renderer * renderer,
                                            const SDL_Rect * srcrect,
                                            const SDL_Rect * dstrect);
 
+extern __declspec(dllexport) int SDLCALL SDL_RenderCopyMany(SDL_Renderer * renderer,
+											SDL_Texture * texture,
+											const SDL_Rect * srcrect,
+											const SDL_Rect * dstrect,
+											int size);
+
+
 /**
  *  \brief Copy a portion of the source texture to the current rendering target, rotating it by angle around the given center
  *
@@ -974,6 +981,12 @@ extern DECLSPEC int SDLCALL SDL_RenderCopyF(SDL_Renderer * renderer,
                                             SDL_Texture * texture,
                                             const SDL_Rect * srcrect,
                                             const SDL_FRect * dstrect);
+
+extern DECLSPEC int SDLCALL SDL_RenderCopyManyF(SDL_Renderer * renderer,
+											SDL_Texture * texture,
+											const SDL_Rect * srcrect,
+											const SDL_FRect * dstrect,
+											int size);
 
 /**
  *  \brief Copy a portion of the source texture to the current rendering target, rotating it by angle around the given center

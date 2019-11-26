@@ -927,6 +927,73 @@ D3D_QueueCopy(SDL_Renderer * renderer, SDL_RenderCommand *cmd, SDL_Texture * tex
 }
 
 static int
+D3D_QueueCopyMany(SDL_Renderer * renderer, SDL_RenderCommand *cmd, SDL_Texture * texture,
+	const SDL_Rect * srcrect, const SDL_FRect * dstrect, int size)
+{
+	const DWORD color = D3DCOLOR_ARGB(cmd->data.draw.a, cmd->data.draw.r, cmd->data.draw.g, cmd->data.draw.b);
+	float minx, miny, maxx, maxy;
+	float minu, maxu, minv, maxv;
+	const size_t vertslen = (sizeof(Vertex) * 4) * size;
+	Vertex *verts = (Vertex *)SDL_AllocateRenderVertices(renderer, vertslen, 0, &cmd->data.draw.first);
+
+	if (!verts) {
+		return -1;
+	}
+
+	cmd->data.draw.count = size;
+
+	for (int i = 0; i < size; i++) {
+
+		minx = (dstrect + i)->x - 0.5f;
+		miny = (dstrect + i)->y - 0.5f;
+		maxx = (dstrect + i)->x + (dstrect + i)->w - 0.5f;
+		maxy = (dstrect + i)->y + (dstrect + i)->h - 0.5f;
+
+		minu = (float)(srcrect + i)->x / texture->w;
+		maxu = (float)((srcrect + i)->x + (srcrect + i)->w) / texture->w;
+		minv = (float)(srcrect + i)->y / texture->h;
+		maxv = (float)((srcrect + i)->y + (srcrect + i)->h) / texture->h;
+
+		SDL_Log("src: { x = %d, y = %d, w = %d, h = %d } || Texture { w = %d, h = %d }\n", srcrect[i].x, srcrect[i].y, srcrect[i].w, srcrect[i].h, texture->w, texture->h);
+		SDL_Log("uv: { minu = %f, minv = %f, maxu = %f, maxv = %f }\n", minu, minv, maxu, maxv);
+
+		verts->x = minx;
+		verts->y = miny;
+		verts->z = 0.0f;
+		verts->color = color;
+		verts->u = minu;
+		verts->v = minv;
+		verts++;
+
+		verts->x = maxx;
+		verts->y = miny;
+		verts->z = 0.0f;
+		verts->color = color;
+		verts->u = maxu;
+		verts->v = minv;
+		verts++;
+
+		verts->x = maxx;
+		verts->y = maxy;
+		verts->z = 0.0f;
+		verts->color = color;
+		verts->u = maxu;
+		verts->v = maxv;
+		verts++;
+
+		verts->x = minx;
+		verts->y = maxy;
+		verts->z = 0.0f;
+		verts->color = color;
+		verts->u = minu;
+		verts->v = maxv;
+		verts++;
+	}
+
+	return 0;
+}
+
+static int
 D3D_QueueCopyEx(SDL_Renderer * renderer, SDL_RenderCommand *cmd, SDL_Texture * texture,
                         const SDL_Rect * srcquad, const SDL_FRect * dstrect,
                         const double angle, const SDL_FPoint *center, const SDL_RendererFlip flip)
@@ -1711,6 +1778,7 @@ D3D_CreateRenderer(SDL_Window * window, Uint32 flags)
     renderer->QueueDrawLines = D3D_QueueDrawPoints;  /* lines and points queue vertices the same way. */
     renderer->QueueFillRects = D3D_QueueFillRects;
     renderer->QueueCopy = D3D_QueueCopy;
+	renderer->QueueCopyMany = D3D_QueueCopyMany;
     renderer->QueueCopyEx = D3D_QueueCopyEx;
     renderer->RunCommandQueue = D3D_RunCommandQueue;
     renderer->RenderReadPixels = D3D_RenderReadPixels;
