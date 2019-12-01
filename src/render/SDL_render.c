@@ -526,9 +526,6 @@ QueueCmdCopy(SDL_Renderer *renderer, SDL_Texture * texture, const SDL_Rect * src
 
 static int
 QueueCmdCopyMany(SDL_Renderer *renderer, SDL_Texture * texture, const SDL_Rect * srcrect, const SDL_FRect * dstrect, int size) {
-	for (int i = 0; i < size; i++) {
-		SDL_Log("BeforeQueue: src: { x = %d, y = %d, w = %d, h = %d } || Texture { w = %d, h = %d }\n", srcrect[i].x, srcrect[i].y, srcrect[i].w, srcrect[i].h, texture->w, texture->h);
-	}
 	SDL_RenderCommand *cmd = PrepQueueCmdDrawTexture(renderer, texture, SDL_RENDERCMD_COPY);
 	int retval = -1;
 	if (cmd != NULL) {
