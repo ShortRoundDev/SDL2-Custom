@@ -2961,8 +2961,6 @@ int
 SDL_RenderCopyMany(SDL_Renderer * renderer, SDL_Texture * texture,
 	const SDL_Rect * srcrect, const SDL_Rect * dstrect, int size)
 {
-	SDL_LogMessage(1, SDL_LOG_PRIORITY_CRITICAL, "Many");
-
 	SDL_FRect *dstfrect = SDL_malloc(sizeof(SDL_FRect) * size);
 	SDL_FRect *pdstfrect = NULL;
 	for (int i = 0; i < size; i++) {
