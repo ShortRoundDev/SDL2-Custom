@@ -954,9 +954,6 @@ D3D_QueueCopyMany(SDL_Renderer * renderer, SDL_RenderCommand *cmd, SDL_Texture *
 		minv = (float)(srcrect + i)->y / texture->h;
 		maxv = (float)((srcrect + i)->y + (srcrect + i)->h) / texture->h;
 
-		SDL_Log("src: { x = %d, y = %d, w = %d, h = %d } || Texture { w = %d, h = %d }\n", srcrect[i].x, srcrect[i].y, srcrect[i].w, srcrect[i].h, texture->w, texture->h);
-		SDL_Log("uv: { minu = %f, minv = %f, maxu = %f, maxv = %f }\n", minu, minv, maxu, maxv);
-
 		verts->x = minx;
 		verts->y = miny;
 		verts->z = 0.0f;
