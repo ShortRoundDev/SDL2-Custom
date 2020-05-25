@@ -851,6 +851,47 @@ GL_QueueFillRects(SDL_Renderer * renderer, SDL_RenderCommand *cmd, const SDL_FRe
 }
 
 static int
+GL_QueueCopyMany(SDL_Renderer* renderer, SDL_RenderCommand* cmd, SDL_Texture* texture,
+    const SDL_Rect* srcrect, const SDL_FRect* dstrect, int size)
+{
+    GL_TextureData* texturedata = (GL_TextureData*)texture->driverdata;
+    GLfloat minx, miny, maxx, maxy;
+    GLfloat minu, maxu, minv, maxv;
+    const size_t vertslen = (sizeof(GLfloat) * 8) * size;
+    GLfloat* verts = (GLfloat*)SDL_AllocateRenderVertices(renderer, vertslen, 0, &cmd->data.draw.first);
+
+    cmd->data.draw.count = size;
+
+    for (int i = 0; i < size; i++) {
+
+        minx = (dstrect + i)->x;
+        miny = (dstrect + i)->y;
+        maxx = (dstrect + i)->x + (dstrect + i)->w;
+        maxy = (dstrect + i)->y + (dstrect + i)->h;
+
+        minu = (GLfloat)(srcrect + i)->x / texture->w;
+        minu *= texturedata->texw;
+        maxu = (GLfloat)((srcrect + i)->x + (srcrect + i)->w) / texture->w;
+        maxu *= texturedata->texw;
+        minv = (GLfloat)(srcrect + i)->y / texture->h;
+        minv *= texturedata->texh;
+        maxv = (GLfloat)((srcrect + i)->y + (srcrect + i)->h) / texture->h;
+        maxv *= texturedata->texh;
+
+        *(verts++) = minx;
+        *(verts++) = miny;
+        *(verts++) = maxx;
+        *(verts++) = maxy;
+        *(verts++) = minu;
+        *(verts++) = maxu;
+        *(verts++) = minv;
+        *(verts++) = maxv;
+    }
+
+    return 0;
+}
+
+static int
 GL_QueueCopy(SDL_Renderer * renderer, SDL_RenderCommand *cmd, SDL_Texture * texture,
              const SDL_Rect * srcrect, const SDL_FRect * dstrect)
 {
@@ -1258,29 +1299,30 @@ GL_RunCommandQueue(SDL_Renderer * renderer, SDL_RenderCommand *cmd, void *vertic
             }
 
             case SDL_RENDERCMD_COPY: {
-                const GLfloat *verts = (GLfloat *) (((Uint8 *) vertices) + cmd->data.draw.first);
-                const GLfloat minx = verts[0];
-                const GLfloat miny = verts[1];
-                const GLfloat maxx = verts[2];
-                const GLfloat maxy = verts[3];
-                const GLfloat minu = verts[4];
-                const GLfloat maxu = verts[5];
-                const GLfloat minv = verts[6];
-                const GLfloat maxv = verts[7];
-                SetCopyState(data, cmd);
-                data->glBegin(GL_TRIANGLE_STRIP);
-                data->glTexCoord2f(minu, minv);
-                data->glVertex2f(minx, miny);
-                data->glTexCoord2f(maxu, minv);
-                data->glVertex2f(maxx, miny);
-                data->glTexCoord2f(minu, maxv);
-                data->glVertex2f(minx, maxy);
-                data->glTexCoord2f(maxu, maxv);
-                data->glVertex2f(maxx, maxy);
-                data->glEnd();
+                const GLfloat* verts = (GLfloat*)(((Uint8*)vertices) + cmd->data.draw.first);
+                for (int _i = 0; _i < cmd->data.draw.count; _i++) {
+                    const GLfloat minx = verts[(_i * 8) + 0];
+                    const GLfloat miny = verts[(_i * 8) + 1];
+                    const GLfloat maxx = verts[(_i * 8) + 2];
+                    const GLfloat maxy = verts[(_i * 8) + 3];
+                    const GLfloat minu = verts[(_i * 8) + 4];
+                    const GLfloat maxu = verts[(_i * 8) + 5];
+                    const GLfloat minv = verts[(_i * 8) + 6];
+                    const GLfloat maxv = verts[(_i * 8) + 7];
+                    SetCopyState(data, cmd);
+                    data->glBegin(GL_TRIANGLE_STRIP);
+                    data->glTexCoord2f(minu, minv);
+                    data->glVertex2f(minx, miny);
+                    data->glTexCoord2f(maxu, minv);
+                    data->glVertex2f(maxx, miny);
+                    data->glTexCoord2f(minu, maxv);
+                    data->glVertex2f(minx, maxy);
+                    data->glTexCoord2f(maxu, maxv);
+                    data->glVertex2f(maxx, maxy);
+                    data->glEnd();
+                }
                 break;
             }
-
             case SDL_RENDERCMD_COPY_EX: {
                 const GLfloat *verts = (GLfloat *) (((Uint8 *) vertices) + cmd->data.draw.first);
                 const GLfloat minx = verts[0];
@@ -1584,6 +1626,7 @@ GL_CreateRenderer(SDL_Window * window, Uint32 flags)
     renderer->QueueDrawLines = GL_QueueDrawPoints;  /* lines and points queue vertices the same way. */
     renderer->QueueFillRects = GL_QueueFillRects;
     renderer->QueueCopy = GL_QueueCopy;
+    renderer->QueueCopyMany = GL_QueueCopyMany;
     renderer->QueueCopyEx = GL_QueueCopyEx;
     renderer->RunCommandQueue = GL_RunCommandQueue;
     renderer->RenderReadPixels = GL_RenderReadPixels;
