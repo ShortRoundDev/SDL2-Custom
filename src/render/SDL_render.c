@@ -3012,7 +3012,7 @@ SDL_RenderCopyManyF(SDL_Renderer * renderer, SDL_Texture * texture,
 		real_src->h = texture->h;
 		if (srcrect) {
 			if (!SDL_IntersectRect(srcrect, real_src, real_src)) {
-				return 0;
+				continue;
 			}
 			*real_src = *(srcrect + i);
 
@@ -3026,7 +3026,7 @@ SDL_RenderCopyManyF(SDL_Renderer * renderer, SDL_Texture * texture,
 		real_dst->h = (float)r.h;
 		if (dstrect) {
 			if (!SDL_HasIntersectionF(dstrect, real_dst)) {
-				return 0;
+				continue;
 			}
 			*real_dst = *(dstrect + i);
 		}
