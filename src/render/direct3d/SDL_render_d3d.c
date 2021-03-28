@@ -467,7 +467,7 @@ D3D_UpdateTextureRep(IDirect3DDevice9 *device, D3D_TextureRep *texture, int x, i
     d3drect.right = x + w;
     d3drect.top = y;
     d3drect.bottom = y + h;
-    
+
     result = IDirect3DTexture9_LockRect(texture->staging, 0, &locked, &d3drect, 0);
     if (FAILED(result)) {
         return D3D_SetError("LockRect()", result);
@@ -863,6 +863,47 @@ D3D_QueueFillRects(SDL_Renderer * renderer, SDL_RenderCommand *cmd, const SDL_FR
     }
 
     return 0;
+}
+
+static int
+D3D_QueueFillQuads(SDL_Renderer* renderer, SDL_RenderCommand* cmd, const float* quads, int count)
+{
+    const DWORD color = D3DCOLOR_ARGB(cmd->data.draw.a, cmd->data.draw.r, cmd->data.draw.g, cmd->data.draw.b);
+    const size_t vertslen = (count/8) * sizeof(Vertex) * 4;
+    Vertex* verts = (Vertex*)SDL_AllocateRenderVertices(renderer, vertslen, 0, &cmd->data.draw.first);
+    int i;
+
+    if (!verts) {
+        return -1;
+    }
+
+    SDL_memset(verts, '\0', vertslen);
+    cmd->data.draw.count = (count/4);
+
+    for (i = 0; i < count; i += 8) {
+        verts->x = quads[i];
+        verts->y = quads[i + 1];
+        verts->color = color;
+        verts++;
+
+        verts->x = quads[i + 2];
+        verts->y = quads[i + 3];
+        verts->color = color;
+        verts++;
+
+        verts->x = quads[i + 4];
+        verts->y = quads[i + 5];
+        verts->color = color;
+        verts++;
+
+        verts->x = quads[i + 7];
+        verts->y = quads[i + 6];
+        verts->color = color;
+        verts++;
+    }
+
+    return 0;
+
 }
 
 static int
@@ -1427,6 +1468,25 @@ D3D_RunCommandQueue(SDL_Renderer * renderer, SDL_RenderCommand *cmd, void *verti
                 break;
             }
 
+            case SDL_RENDERCMD_FILL_QUADS:
+            {
+                const size_t count = cmd->data.draw.count;
+                const size_t first = cmd->data.draw.first;
+                SetDrawState(data, cmd);
+                /*if (vbo) {
+                    size_t offset = 0;
+                    for (i = 0; i < count; ++i, offset += 4) {
+                        IDirect3DDevice9_DrawPrimitive(data->device, D3DPT_TRIANGLEFAN, (UINT)((first / sizeof(Vertex)) + offset), 2);
+                    }
+                }
+                else {*/
+                    const Vertex* verts = (Vertex*)(((Uint8*)vertices) + first);
+                    for (i = 0; i < count; ++i, verts += 4) {
+                        IDirect3DDevice9_DrawPrimitiveUP(data->device, D3DPT_TRIANGLEFAN, 2, verts, sizeof(Vertex));
+                    }
+                //}
+                break;
+            }
             case SDL_RENDERCMD_FILL_RECTS: {
                 const size_t count = cmd->data.draw.count;
                 const size_t first = cmd->data.draw.first;
@@ -1774,6 +1834,7 @@ D3D_CreateRenderer(SDL_Window * window, Uint32 flags)
     renderer->QueueDrawPoints = D3D_QueueDrawPoints;
     renderer->QueueDrawLines = D3D_QueueDrawPoints;  /* lines and points queue vertices the same way. */
     renderer->QueueFillRects = D3D_QueueFillRects;
+    renderer->QueueFillQuads = D3D_QueueFillQuads;
     renderer->QueueCopy = D3D_QueueCopy;
 	renderer->QueueCopyMany = D3D_QueueCopyMany;
     renderer->QueueCopyEx = D3D_QueueCopyEx;

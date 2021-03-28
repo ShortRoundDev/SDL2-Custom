@@ -367,7 +367,7 @@ QueueCmdSetDrawColor(SDL_Renderer *renderer, const Uint8 r, const Uint8 g, const
 {
     const Uint32 color = ((a << 24) | (r << 16) | (g << 8) | b);
     int retval = 0;
-    
+
     if (!renderer->color_queued || (color != renderer->last_queued_color)) {
         SDL_RenderCommand *cmd = AllocateRenderCommand(renderer);
         retval = -1;
@@ -481,6 +481,20 @@ QueueCmdFillRects(SDL_Renderer *renderer, const SDL_FRect * rects, const int cou
     int retval = -1;
     if (cmd != NULL) {
         retval = renderer->QueueFillRects(renderer, cmd, rects, count);
+        if (retval < 0) {
+            cmd->command = SDL_RENDERCMD_NO_OP;
+        }
+    }
+    return retval;
+}
+
+static int
+QueueCmdFillQuads(SDL_Renderer* renderer, const float* quads, const int count)
+{
+    SDL_RenderCommand* cmd = PrepQueueCmdDrawSolid(renderer, SDL_RENDERCMD_FILL_QUADS);
+    int retval = -1;
+    if (cmd != NULL) {
+        retval = renderer->QueueFillQuads(renderer, cmd, quads, count);
         if (retval < 0) {
             cmd->command = SDL_RENDERCMD_NO_OP;
         }
@@ -650,7 +664,7 @@ SDL_RendererEventWatch(void *userdata, SDL_Event *event)
                 }
             } else if (event->window.event == SDL_WINDOWEVENT_MINIMIZED) {
                 renderer->hidden = SDL_TRUE;
-            } else if (event->window.event == SDL_WINDOWEVENT_RESTORED || 
+            } else if (event->window.event == SDL_WINDOWEVENT_RESTORED ||
                        event->window.event == SDL_WINDOWEVENT_MAXIMIZED) {
                 if (!(SDL_GetWindowFlags(window) & SDL_WINDOW_HIDDEN)) {
                     renderer->hidden = SDL_FALSE;
@@ -1226,7 +1240,7 @@ SDL_CreateTextureFromSurface(SDL_Renderer * renderer, SDL_Surface * surface)
 
     if (format == surface->format->format) {
         if (surface->format->Amask && SDL_HasColorKey(surface)) {
-            /* Surface and Renderer formats are identicals. 
+            /* Surface and Renderer formats are identicals.
              * Intermediate conversion is needed to convert color key to alpha (SDL_ConvertColorkeyToAlpha()). */
             direct_update = SDL_FALSE;
         } else {
@@ -1953,9 +1967,9 @@ UpdateLogicalSize(SDL_Renderer *renderer)
         SDL_RenderSetViewport(renderer, NULL);
     } else if (want_aspect > real_aspect) {
         if (scale_policy == 1) {
-            /* We want a wider aspect ratio than is available - 
-             zoom so logical height matches the real height 
-             and the width will grow off the screen 
+            /* We want a wider aspect ratio than is available -
+             zoom so logical height matches the real height
+             and the width will grow off the screen
              */
             scale = (float)h / renderer->logical_h;
             viewport.y = 0;
@@ -2610,6 +2624,32 @@ SDL_RenderDrawRect(SDL_Renderer * renderer, const SDL_Rect * rect)
     }
 
     return SDL_RenderDrawRectF(renderer, prect);
+}
+
+int
+SDL_RenderFillQuadsF(SDL_Renderer* renderer, float* quads, int num)
+{
+    int i;
+    int retval;
+    SDL_bool isstack;
+
+    CHECK_RENDERER_MAGIC(renderer, -1);
+
+    if (!quads) {
+        return SDL_SetError("SDL_RenderFillQuadsF(): Passed NULL quads");
+    }
+    if (num < 1) {
+        return 0;
+    }
+
+    /* Don't draw while we're hidden */
+    if (renderer->hidden) {
+        return 0;
+    }
+
+    retval = QueueCmdFillQuads(renderer, quads, num);
+
+    return retval < 0 ? retval : FlushRenderCommandsIfNotBatching(renderer);
 }
 
 int

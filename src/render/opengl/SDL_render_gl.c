@@ -33,8 +33,8 @@
 #include <OpenGL/OpenGL.h>
 #endif
 
-/* To prevent unnecessary window recreation, 
- * these should match the defaults selected in SDL_GL_ResetAttributes 
+/* To prevent unnecessary window recreation,
+ * these should match the defaults selected in SDL_GL_ResetAttributes
  */
 
 #define RENDERER_CONTEXT_MAJOR 2
@@ -850,6 +850,31 @@ GL_QueueFillRects(SDL_Renderer * renderer, SDL_RenderCommand *cmd, const SDL_FRe
     return 0;
 }
 
+static int GL_QueueFillQuads(SDL_Renderer* renderer, SDL_RenderCommand* cmd, const float * quads, int count)
+{
+    GLfloat* verts = (GLfloat*)SDL_AllocateRenderVertices(renderer, count * 8 * sizeof(GLfloat), 0, &cmd->data.draw.first);
+    int i;
+
+    if (!verts) {
+        return -1;
+    }
+
+    cmd->data.draw.count = count;
+    for (i = 0; i < count * 8; i += 8) {
+        //const SDL_FRect* rect = &rects[i];
+        *(verts++) = quads[i];
+        *(verts++) = quads[i + 1];
+        *(verts++) = quads[i + 2];
+        *(verts++) = quads[i + 3];
+        *(verts++) = quads[i + 4];
+        *(verts++) = quads[i + 5];
+        *(verts++) = quads[i + 6];
+        *(verts++) = quads[i + 7];
+    }
+
+    return 0;
+}
+
 static int
 GL_QueueCopyMany(SDL_Renderer* renderer, SDL_RenderCommand* cmd, SDL_Texture* texture,
     const SDL_Rect* srcrect, const SDL_FRect* dstrect, int size)
@@ -1009,7 +1034,8 @@ SetDrawState(GL_RenderData *data, const SDL_RenderCommand *cmd, const GL_Shader 
             data->glOrtho((GLdouble) 0, (GLdouble) viewport->w,
                           (GLdouble) istarget ? 0 : viewport->h,
                           (GLdouble) istarget ? viewport->h : 0,
-                          0.0, 1.0);
+                          0.0, 20.0);
+            //data->glFrustum(0.0, 1.0, 1.0, 1.0, 0, 20);
         }
         data->glMatrixMode(GL_MODELVIEW);
         data->drawstate.viewport_dirty = SDL_FALSE;
@@ -1294,6 +1320,25 @@ GL_RunCommandQueue(SDL_Renderer * renderer, SDL_RenderCommand *cmd, void *vertic
                 SetDrawState(data, cmd, SHADER_SOLID);
                 for (i = 0; i < count; ++i, verts += 4) {
                     data->glRectf(verts[0], verts[1], verts[2], verts[3]);
+                }
+                break;
+            }
+
+            case SDL_RENDERCMD_FILL_QUADS: {
+                const size_t count = cmd->data.draw.count;
+                const GLfloat* verts = (GLfloat*)(((Uint8*)vertices) + cmd->data.draw.first);
+                SetDrawState(data, cmd, SHADER_SOLID);
+                for (i = 0; i < count * 8; ++i, verts += 8) {
+//                    data->glRectf(verts[0], verts[1], verts[2], verts[3]);
+                    data->glBegin(GL_TRIANGLES);
+                        data->glVertex2f(verts[i], verts[i + 1]);
+                        data->glVertex2f(verts[i + 2], verts[i + 3]);
+                        data->glVertex2f(verts[i + 4], verts[i + 5]);
+
+                        data->glVertex2f(verts[i + 4], verts[i + 5]);
+                        data->glVertex2f(verts[i + 6], verts[i + 7]);
+                        data->glVertex2f(verts[i], verts[i + 1]);
+                    data->glEnd();
                 }
                 break;
             }
@@ -1625,6 +1670,7 @@ GL_CreateRenderer(SDL_Window * window, Uint32 flags)
     renderer->QueueDrawPoints = GL_QueueDrawPoints;
     renderer->QueueDrawLines = GL_QueueDrawPoints;  /* lines and points queue vertices the same way. */
     renderer->QueueFillRects = GL_QueueFillRects;
+    renderer->QueueFillQuads = GL_QueueFillQuads;
     renderer->QueueCopy = GL_QueueCopy;
     renderer->QueueCopyMany = GL_QueueCopyMany;
     renderer->QueueCopyEx = GL_QueueCopyEx;

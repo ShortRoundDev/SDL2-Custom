@@ -817,6 +817,19 @@ extern DECLSPEC int SDLCALL SDL_RenderFillRects(SDL_Renderer * renderer,
                                                 int count);
 
 /**
+ *  \brief Fill some number of quads on the current rendering target with the drawing color.
+ *
+ *  \param renderer The renderer which should fill multiple quads.
+ *  \param rects A pointer to an array of floats representing the points making up the destination quads.
+ *  \param count The number of floats making up the vertices of the quads. (1 Quad = 8 floats)
+ *
+ *  \return 0 on success, or -1 on error
+ */
+extern __declspec(dllexport) int SDLCALL SDL_RenderFillQuadsF(SDL_Renderer* renderer,
+                                                const float* quads,
+                                                int count);
+
+/**
  *  \brief Copy a portion of the texture to the current rendering target.
  *
  *  \param renderer The renderer which should copy parts of a texture.
@@ -839,6 +852,11 @@ extern __declspec(dllexport) int SDLCALL SDL_RenderCopyMany(SDL_Renderer * rende
 											const SDL_Rect * dstrect,
 											int size);
 
+extern __declspec(dllexport) int SDLCALL SDL_RenderCopyManyF(SDL_Renderer* renderer,
+                                            SDL_Texture* texture,
+                                            const SDL_Rect* srcrect,
+                                            const SDL_FRect* dstrect,
+                                            int size);
 
 /**
  *  \brief Copy a portion of the source texture to the current rendering target, rotating it by angle around the given center
@@ -982,11 +1000,6 @@ extern DECLSPEC int SDLCALL SDL_RenderCopyF(SDL_Renderer * renderer,
                                             const SDL_Rect * srcrect,
                                             const SDL_FRect * dstrect);
 
-extern DECLSPEC int SDLCALL SDL_RenderCopyManyF(SDL_Renderer * renderer,
-											SDL_Texture * texture,
-											const SDL_Rect * srcrect,
-											const SDL_FRect * dstrect,
-											int size);
 
 /**
  *  \brief Copy a portion of the source texture to the current rendering target, rotating it by angle around the given center

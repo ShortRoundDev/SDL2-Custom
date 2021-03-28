@@ -82,7 +82,8 @@ typedef enum
     SDL_RENDERCMD_FILL_RECTS,
     SDL_RENDERCMD_COPY,
 	SDL_RENDERCMD_COPY_MANY,
-    SDL_RENDERCMD_COPY_EX
+    SDL_RENDERCMD_COPY_EX,
+    SDL_RENDERCMD_FILL_QUADS
 } SDL_RenderCommandType;
 
 typedef struct SDL_RenderCommand
@@ -129,6 +130,8 @@ struct SDL_Renderer
     int (*QueueDrawLines) (SDL_Renderer * renderer, SDL_RenderCommand *cmd, const SDL_FPoint * points,
                             int count);
     int (*QueueFillRects) (SDL_Renderer * renderer, SDL_RenderCommand *cmd, const SDL_FRect * rects,
+                            int count);
+    int (*QueueFillQuads) (SDL_Renderer* renderer, SDL_RenderCommand* cmd, const float* quads,
                             int count);
     int (*QueueCopy) (SDL_Renderer * renderer, SDL_RenderCommand *cmd, SDL_Texture * texture,
                        const SDL_Rect * srcrect, const SDL_FRect * dstrect);

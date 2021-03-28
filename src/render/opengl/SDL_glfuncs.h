@@ -150,7 +150,7 @@ SDL_PROC_UNUSED(void, glFogfv, (GLenum pname, const GLfloat * params))
 SDL_PROC_UNUSED(void, glFogi, (GLenum pname, GLint param))
 SDL_PROC_UNUSED(void, glFogiv, (GLenum pname, const GLint * params))
 SDL_PROC_UNUSED(void, glFrontFace, (GLenum mode))
-SDL_PROC_UNUSED(void, glFrustum,
+SDL_PROC(void, glFrustum,
                 (GLdouble left, GLdouble right, GLdouble bottom,
                  GLdouble top, GLdouble zNear, GLdouble zFar))
 SDL_PROC_UNUSED(GLuint, glGenLists, (GLsizei range))
@@ -453,7 +453,7 @@ SDL_PROC_UNUSED(void, glVertex2s, (GLshort x, GLshort y))
 SDL_PROC_UNUSED(void, glVertex2sv, (const GLshort * v))
 SDL_PROC_UNUSED(void, glVertex3d, (GLdouble x, GLdouble y, GLdouble z))
 SDL_PROC_UNUSED(void, glVertex3dv, (const GLdouble * v))
-SDL_PROC_UNUSED(void, glVertex3f, (GLfloat x, GLfloat y, GLfloat z))
+SDL_PROC(void, glVertex3f, (GLfloat x, GLfloat y, GLfloat z))
 SDL_PROC(void, glVertex3fv, (const GLfloat * v))
 SDL_PROC_UNUSED(void, glVertex3i, (GLint x, GLint y, GLint z))
 SDL_PROC_UNUSED(void, glVertex3iv, (const GLint * v))
